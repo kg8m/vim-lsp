@@ -78,6 +78,7 @@ function! s:list_location(method, ctx, ...) abort
     let l:ctx = extend({ 'counter': len(l:servers), 'list':[], 'last_command_id': l:command_id, 'jump_if_one': 1, 'mods': '', 'in_preview': 0 }, a:ctx)
     if len(l:servers) == 0
         call s:not_supported('Retrieving ' . l:operation)
+        call s:after_failure(l:operation)
         return
     endif
 
@@ -131,6 +132,7 @@ function! lsp#ui#vim#rename() abort
 
     if len(l:servers) == 0
         call s:not_supported('Renaming')
+        call s:after_failure('rename')
         return
     endif
 
@@ -158,6 +160,7 @@ function! s:document_format(sync) abort
 
     if len(l:servers) == 0
         call s:not_supported('Document formatting')
+        call s:after_failure('document format')
         return
     endif
 
@@ -238,6 +241,7 @@ function! s:document_format_range(sync, type) abort
 
     if len(l:servers) == 0
         call s:not_supported('Document range formatting')
+        call s:after_failure('range format')
         return
     endif
 
@@ -284,6 +288,7 @@ function! lsp#ui#vim#workspace_symbol() abort
 
     if len(l:servers) == 0
         call s:not_supported('Retrieving workspace symbols')
+        call s:after_failure('workspaceSymbol')
         return
     endif
 
@@ -312,6 +317,7 @@ function! lsp#ui#vim#document_symbol() abort
 
     if len(l:servers) == 0
         call s:not_supported('Retrieving symbols')
+        call s:after_failure('documentSymbol')
         return
     endif
 
@@ -335,6 +341,7 @@ function! s:handle_symbol(server, last_command_id, type, data) abort
 
     if lsp#client#is_error(a:data['response'])
         call lsp#utils#error('Failed to retrieve '. a:type . ' for ' . a:server . ': ' . lsp#client#error_message(a:data['response']))
+        call s:after_failure(a:type)
         return
     endif
 
@@ -345,6 +352,7 @@ function! s:handle_symbol(server, last_command_id, type, data) abort
 
     if empty(l:list)
         call lsp#utils#error('No ' . a:type .' found')
+        call s:after_failure(a:type)
     else
         echo 'Retrieved ' . a:type
         botright copen
@@ -360,6 +368,7 @@ function! s:handle_location(ctx, server, type, data) abort "ctx = {counter, list
 
     if lsp#client#is_error(a:data['response']) || !has_key(a:data['response'], 'result')
         call lsp#utils#error('Failed to retrieve '. a:type . ' for ' . a:server . ': ' . lsp#client#error_message(a:data['response']))
+        call s:after_failure(a:type)
     else
         let a:ctx['list'] = a:ctx['list'] + lsp#utils#location#_lsp_to_vim_list(a:data['response']['result'])
     endif
@@ -367,6 +376,7 @@ function! s:handle_location(ctx, server, type, data) abort "ctx = {counter, list
     if a:ctx['counter'] == 0
         if empty(a:ctx['list'])
             call lsp#utils#error('No ' . a:type .' found')
+            call s:after_failure(a:type)
         else
             call lsp#utils#tagstack#_update()
 
@@ -408,6 +418,7 @@ function! s:handle_rename_prepare(server, last_command_id, type, data) abort
 
     if lsp#client#is_error(a:data['response'])
         call lsp#utils#error('Failed to retrieve '. a:type . ' for ' . a:server . ': ' . lsp#client#error_message(a:data['response']))
+        call s:after_failure('rename')
         return
     endif
 
@@ -439,6 +450,7 @@ function! s:handle_workspace_edit(server, last_command_id, type, data) abort
 
     if lsp#client#is_error(a:data['response'])
         call lsp#utils#error('Failed to retrieve '. a:type . ' for ' . a:server . ': ' . lsp#client#error_message(a:data['response']))
+        call s:after_failure(a:type)
         return
     endif
 
@@ -454,6 +466,7 @@ function! s:handle_text_edit(server, last_command_id, type, data) abort
 
     if lsp#client#is_error(a:data['response'])
         call lsp#utils#error('Failed to '. a:type . ' for ' . a:server . ': ' . lsp#client#error_message(a:data['response']))
+        call s:after_failure(a:type)
         return
     endif
 
@@ -526,6 +539,14 @@ endfunction
 
 function! s:get_treeitem_for_tree_hierarchy(Callback, object) dict abort
     call a:Callback('success', s:hierarchyitem_to_treeitem(a:object))
+endfunction
+
+function! s:after_failure(type) abort
+  execute 'doautocmd User ' . s:event_name_on_failure(a:type)
+endfunction
+
+function! s:event_name_on_failure(type) abort
+  return 'lsp_' . substitute(substitute(a:type, '\s', '_', 'g'), '\C[A-Z]', '\="_" . tolower(submatch(0))', 'g') . '_failed'
 endfunction
 
 function! lsp#ui#vim#code_action() abort

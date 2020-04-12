@@ -31,6 +31,17 @@ augroup _lsp_silent_
     autocmd User lsp_float_closed silent
     autocmd User lsp_buffer_enabled silent
     autocmd User lsp_diagnostics_updated silent
+    autocmd User lsp_implementation_failed silent
+    autocmd User lsp_type_definition_failed silent
+    autocmd User lsp_declaration_failed silent
+    autocmd User lsp_definition_failed silent
+    autocmd User lsp_references_failed silent
+    autocmd User lsp_rename_failed silent
+    autocmd User lsp_document_format_failed silent
+    autocmd User lsp_range_format_failed silent
+    autocmd User lsp_workspace_symbol_failed silent
+    autocmd User lsp_document_symbol_failed silent
+    autocmd User lsp_code_action_failed silent
 augroup END
 
 function! lsp#log_verbose(...) abort
